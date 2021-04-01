@@ -1,2 +1,2 @@
 # Gaussian
-Implementations of Gaussian elimination
+Benchmarking the performance of channels with Gaussian Elimination.
