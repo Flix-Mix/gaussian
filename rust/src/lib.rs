@@ -1,14 +1,13 @@
+fn init(nsize: u32) -> 
+
+}
+
+
+
+
+
 #[cfg(test)]
-mod tests {
-
-	
-
-
-
-
-
-
-	
+mod tests {	
     #[test]
     fn it_works() {
         assert_eq!(2 + 2, 4);
