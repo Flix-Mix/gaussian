@@ -1,5 +1,3 @@
-use std::process;
-
 #[macro_use]
 macro_rules! SWAP {
     ($a:expr,$b:expr) => {{
@@ -14,11 +12,11 @@ macro_rules! SWAP {
 
 pub struct Data<'a> {
     pub nsize: usize,
-    pub matrix: &'a mut Vec<Vec<f32>>,
-    pub b: &'a mut Vec<f32>,
-    pub c: &'a mut Vec<f32>,
-    pub v: &'a mut Vec<f32>,
-    pub swap: &'a mut Vec<u32>,
+    pub matrix: &'a mut Vec<Vec<f64>>,
+    pub b: &'a mut Vec<f64>,
+    pub c: &'a mut Vec<f64>,
+    pub v: &'a mut Vec<f64>,
+    pub swap: &'a mut Vec<u64>,
 }
 
 pub fn init(data: &mut Data) {
@@ -27,16 +25,16 @@ pub fn init(data: &mut Data) {
         for _ in 0..data.nsize {
             data.matrix[i].resize(data.nsize, 0.0);
         }
-        data.b.push(i as f32);
-        data.swap.push(i as u32);
+        data.b.push(i as f64);
+        data.swap.push(i as u64);
         data.c.push(0.0);
         data.v.push(0.0);
     }
 
     for i in 0..data.matrix.len() {
         for j in 0..data.matrix.len() {
-            let ii: f32 = i as f32;
-            let jj: f32 = j as f32;
+            let ii: f64 = i as f64;
+            let jj: f64 = j as f64;
             data.matrix[i][j] = if jj < ii {
                 2.0 * (jj + 1.0)
             } else {
@@ -46,12 +44,11 @@ pub fn init(data: &mut Data) {
     }
 }
 
-//#[allow(dead_code,unused_variables)]
 pub fn compute_gauss(data: &mut Data) {
     for i in 0..data.nsize {
         pivot(data, i);
 
-        let mut pivot_val; // = matrix[i][i];
+        let mut pivot_val;
         for j in i + 1..data.nsize {
             pivot_val = data.matrix[j][i];
             data.matrix[j][i] = 0.0;
@@ -63,7 +60,6 @@ pub fn compute_gauss(data: &mut Data) {
     }
 }
 
-//#[allow(dead_code,unused_variables)]
 fn pivot(data: &mut Data, currow: usize) {
     let (mut irow, mut big, mut tmp);
 
@@ -71,7 +67,6 @@ fn pivot(data: &mut Data, currow: usize) {
     irow = currow;
 
     if big == 0.0 {
-        //for i in currow..nsize {
         for (i, row) in data.matrix.iter().enumerate().take(data.nsize).skip(currow) {
             tmp = row[currow];
             if tmp != 0.0 {
@@ -84,15 +79,12 @@ fn pivot(data: &mut Data, currow: usize) {
 
     if big == 0.0 {
         println!("The matrix is singular");
-        process::exit(-1);
+        panic!("singular");
     }
 
     if irow != currow {
         for i in currow..data.nsize {
             SWAP!(data.matrix[irow][i], data.matrix[currow][i]);
-            // let tmp = matrix[irow][i]; //make this a macro
-            // matrix[irow][i] = matrix[currow][i];
-            // matrix[currow][i] = tmp;
         }
         data.b.swap(irow, currow);
 
@@ -111,8 +103,7 @@ fn pivot(data: &mut Data, currow: usize) {
     }
 }
 
-#[allow(dead_code, unused_variables)]
-fn solve_gauss(data: Data) {
+pub fn solve_gauss(data: &mut Data) {
     data.v[data.nsize - 1] = data.b[data.nsize - 1];
     for i in (0..data.nsize - 2).rev() {
         data.v[i] = data.b[i];
@@ -120,9 +111,6 @@ fn solve_gauss(data: Data) {
             data.v[i] -= data.matrix[i][j] * data.v[j];
         }
     }
-    // for i in 0..nsize {
-    //     c[i] = v[i];
-    // }
     data.c[..data.nsize].clone_from_slice(&data.v[..data.nsize]);
 }
 
@@ -135,6 +123,31 @@ pub fn print(data: &Data) {
     println!("\n}}");
 }
 
+pub fn verify(data: &Data) -> u64 {
+    if data.nsize == 2 {
+        assert_eq!(*data.b, [0.0, 0.5]);
+        assert_eq!(*data.c, [0.0, 0.5]);
+    } else if data.nsize == 3 {
+        assert_eq!(*data.b, [0.0, 0.5, 0.5]);
+        assert_eq!(*data.c, [0.0, 0.0, 0.5]);
+    } else {
+        for i in 0..data.nsize {
+            //println!("{:6.5} {:5.5}", data.b[i], data.c[i]);
+            if i == 0 {
+                assert_eq!(data.b[i], 0.0);
+                assert_eq!(data.c[i], -0.5);
+            } else if i == data.nsize - 3 || i == data.nsize - 1 {
+                assert_eq!(data.c[i], 0.5);
+            } else {
+                assert_eq!(data.b[i], 0.5);
+                assert_eq!(data.c[i], 0.0);
+            }
+        }
+    }
+    println!("Verified");
+    1
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -142,11 +155,11 @@ mod tests {
     #[test]
     fn init_matrix_test() {
         let nsize = 3;
-        let mut matrix: Vec<Vec<f32>> = Vec::with_capacity(nsize);
-        let mut b: Vec<f32> = Vec::with_capacity(nsize);
-        let mut c: Vec<f32> = Vec::with_capacity(nsize);
-        let mut v: Vec<f32> = Vec::with_capacity(nsize);
-        let mut swap: Vec<u32> = Vec::with_capacity(nsize);
+        let mut matrix: Vec<Vec<f64>> = Vec::with_capacity(nsize);
+        let mut b: Vec<f64> = Vec::with_capacity(nsize);
+        let mut c: Vec<f64> = Vec::with_capacity(nsize);
+        let mut v: Vec<f64> = Vec::with_capacity(nsize);
+        let mut swap: Vec<u64> = Vec::with_capacity(nsize);
         let mut data = Data {
             nsize: nsize,
             matrix: &mut matrix,
@@ -162,11 +175,11 @@ mod tests {
     #[test]
     fn compute_gauss_test() {
         let nsize = 3;
-        let mut matrix: Vec<Vec<f32>> = Vec::with_capacity(nsize);
-        let mut b: Vec<f32> = Vec::with_capacity(nsize);
-        let mut c: Vec<f32> = Vec::with_capacity(nsize);
-        let mut v: Vec<f32> = Vec::with_capacity(nsize);
-        let mut swap: Vec<u32> = Vec::with_capacity(nsize);
+        let mut matrix: Vec<Vec<f64>> = Vec::with_capacity(nsize);
+        let mut b: Vec<f64> = Vec::with_capacity(nsize);
+        let mut c: Vec<f64> = Vec::with_capacity(nsize);
+        let mut v: Vec<f64> = Vec::with_capacity(nsize);
+        let mut swap: Vec<u64> = Vec::with_capacity(nsize);
         let mut data = Data {
             nsize: nsize,
             matrix: &mut matrix,
@@ -178,5 +191,27 @@ mod tests {
         init(&mut data);
         compute_gauss(&mut data);
         assert_eq!(matrix, [[1.0, 1.0, 1.0], [0.0, 1.0, 1.0], [0.0, 0.0, 1.0]]);
+    }
+
+    #[test]
+    fn solve_gauss_test() {
+        let nsize = 5;
+        let mut matrix: Vec<Vec<f64>> = Vec::with_capacity(nsize);
+        let mut b: Vec<f64> = Vec::with_capacity(nsize);
+        let mut c: Vec<f64> = Vec::with_capacity(nsize);
+        let mut v: Vec<f64> = Vec::with_capacity(nsize);
+        let mut swap: Vec<u64> = Vec::with_capacity(nsize);
+        let mut data = Data {
+            nsize: nsize,
+            matrix: &mut matrix,
+            b: &mut b,
+            c: &mut c,
+            v: &mut v,
+            swap: &mut swap,
+        };
+        init(&mut data);
+        compute_gauss(&mut data);
+        solve_gauss(&mut data);
+        assert_eq!(verify(&mut data), 1);
     }
 }
