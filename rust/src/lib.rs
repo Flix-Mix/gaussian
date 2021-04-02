@@ -2,7 +2,7 @@ use std::process;
 
 pub fn init(nsize: usize, matrix: &mut Vec<Vec<f32>>, b: &mut Vec<f32>, swap: &mut Vec<u32>, c: &mut Vec<f32>, v: &mut Vec<f32>){
 	for i in 0..nsize{
-		matrix.push(Vec::new());
+		matrix.push(Vec::with_capacity(nsize));
 		for _ in 0..nsize{
 			matrix[i].push(0.0);
 		}
@@ -131,10 +131,10 @@ mod tests {
     #[test]
     fn init_matrix_test() {
     	let nsize = 3;
-        let mut matrix: Vec<Vec<f32>> = Vec::new();
-        let mut b: Vec<f32> = Vec::new();
-        let mut c: Vec<f32> = Vec::new();
-		let mut v: Vec<f32> = Vec::new();
+        let mut matrix: Vec<Vec<f32>> = Vec::with_capacity(nsize);
+        let mut b: Vec<f32> = Vec::with_capacity(nsize);
+        let mut c: Vec<f32> = Vec::with_capacity(nsize);
+		let mut v: Vec<f32> = Vec::with_capacity(nsize);
 		let mut swap: Vec<u32> = Vec::new();
         init(nsize,&mut matrix,&mut b,&mut swap, &mut c, &mut v);
         assert_eq!(matrix, [[2.0,2.0,2.0],[2.0,4.0,4.0],[2.0,4.0,6.0]]);
@@ -143,11 +143,11 @@ mod tests {
     #[test]
     fn compute_gauss_test() {
     	let nsize = 3;
-        let mut matrix: Vec<Vec<f32>> = Vec::new();
-        let mut b: Vec<f32> = Vec::new();
-        let mut c: Vec<f32> = Vec::new();
-		let mut v: Vec<f32> = Vec::new();
-		let mut swap: Vec<u32> = Vec::new();
+        let mut matrix: Vec<Vec<f32>> = Vec::with_capacity(nsize);
+        let mut b: Vec<f32> = Vec::with_capacity(nsize);
+        let mut c: Vec<f32> = Vec::with_capacity(nsize);
+		let mut v: Vec<f32> = Vec::with_capacity(nsize);
+		let mut swap: Vec<u32> = Vec::with_capacity(nsize);
         init(nsize,&mut matrix,&mut b,&mut swap, &mut c, &mut v);
         compute_gauss(nsize,&mut matrix,&mut b,&mut swap);
         assert_eq!(matrix, [[1.0,1.0,1.0],[0.0,1.0,1.0],[0.0,0.0,1.0]]);
