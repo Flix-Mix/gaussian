@@ -10,6 +10,10 @@ macro_rules! SWAP {
     }};
 }
 
+// use std::thread;
+// use std::sync::mpsc::{Sender, Receiver};
+// use std::sync::mpsc::channel;
+
 pub struct Data<'a> {
     pub nsize: usize,
     pub matrix: &'a mut Vec<Vec<f64>>,
@@ -17,6 +21,7 @@ pub struct Data<'a> {
     pub c: &'a mut Vec<f64>,
     pub v: &'a mut Vec<f64>,
     pub swap: &'a mut Vec<u64>,
+    pub num_threads: usize,
 }
 
 pub fn init(data: &mut Data) {
@@ -49,6 +54,7 @@ pub fn compute_gauss(data: &mut Data) {
         pivot(data, i);
 
         let mut pivot_val;
+        
         for j in i + 1..data.nsize {
             pivot_val = data.matrix[j][i];
             data.matrix[j][i] = 0.0;
@@ -59,6 +65,40 @@ pub fn compute_gauss(data: &mut Data) {
         }
     }
 }
+
+
+// pub fn compute_gauss_p(data: &mut Data) {
+//     let (tx,rx): (Sender<usize>, Receiver<usize>) = channel();
+//     let mut threads = Vec::with_capacity(data.num_threads);
+//     for i in 0..data.nsize {
+//         pivot(data, i);
+//         let pivot_val;
+//         let thread = thread::spawn(move || {
+//             for t in 0..data.num_threads{
+
+//                 for j in i + 1..data.nsize {
+//                     pivot_val = data.matrix[j][i];
+//                     data.matrix[j][i] = 0.0;
+//                     for k in i + 1..data.nsize {
+//                         data.matrix[j][k] -= pivot_val * data.matrix[i][k];
+//                     }
+//                     data.b[j] -= pivot_val * data.b[i];
+//                 }
+//             }
+//         });
+//         threads.push(thread);
+//     }
+//     for thread in threads{
+//         thread.join().expect("joining failed");
+//     }
+// }
+
+// fn do_calc(data: &mut Data, i: usize){
+//     let (j,k,pivot_val) = (1,2,3.0);
+
+
+    
+// }
 
 fn pivot(data: &mut Data, currow: usize) {
     let (mut irow, mut big, mut tmp);
@@ -125,6 +165,7 @@ pub fn print(data: &Data) {
 
 pub fn verify(data: &Data) -> u64 {
     if data.nsize == 2 {
+        //TODO assert with assert_le to avoid error margin failures
         assert_eq!(*data.b, [0.0, 0.5]);
         assert_eq!(*data.c, [0.0, 0.5]);
     } else if data.nsize == 3 {
@@ -167,6 +208,7 @@ mod tests {
             c: &mut c,
             v: &mut v,
             swap: &mut swap,
+            num_threads: 1,
         };
         init(&mut data);
         assert_eq!(matrix, [[2.0, 2.0, 2.0], [2.0, 4.0, 4.0], [2.0, 4.0, 6.0]]);
@@ -187,6 +229,7 @@ mod tests {
             c: &mut c,
             v: &mut v,
             swap: &mut swap,
+            num_threads: 1,
         };
         init(&mut data);
         compute_gauss(&mut data);
@@ -208,6 +251,7 @@ mod tests {
             c: &mut c,
             v: &mut v,
             swap: &mut swap,
+            num_threads: 1,
         };
         init(&mut data);
         compute_gauss(&mut data);
