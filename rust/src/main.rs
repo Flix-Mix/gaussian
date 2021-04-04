@@ -35,7 +35,7 @@ fn main() {
 
     let size: usize = matches.value_of("SIZE").unwrap().parse::<usize>().unwrap();
     let mut verbose = false;
-    let num_threads = matches
+    let num_of_threads = matches
         .value_of("NUM_THREADS")
         .unwrap()
         .parse::<usize>()
@@ -60,7 +60,7 @@ fn main() {
         c: &mut c,
         v: &mut v,
         swap: &mut swap,
-        num_threads: num_threads,
+        num_threads: num_of_threads,
     };
 
     lib::init(&mut data);
@@ -72,5 +72,5 @@ fn main() {
         lib::print(&data);
     }
     lib::solve_gauss(&mut data);
-    lib::verify(&mut data);
+    lib::verify(&data);
 }

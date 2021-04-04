@@ -54,7 +54,7 @@ pub fn compute_gauss(data: &mut Data) {
         pivot(data, i);
 
         let mut pivot_val;
-        
+
         for j in i + 1..data.nsize {
             pivot_val = data.matrix[j][i];
             data.matrix[j][i] = 0.0;
@@ -65,7 +65,6 @@ pub fn compute_gauss(data: &mut Data) {
         }
     }
 }
-
 
 // pub fn compute_gauss_p(data: &mut Data) {
 //     let (tx,rx): (Sender<usize>, Receiver<usize>) = channel();
@@ -96,8 +95,6 @@ pub fn compute_gauss(data: &mut Data) {
 // fn do_calc(data: &mut Data, i: usize){
 //     let (j,k,pivot_val) = (1,2,3.0);
 
-
-    
 // }
 
 fn pivot(data: &mut Data, currow: usize) {
@@ -164,24 +161,37 @@ pub fn print(data: &Data) {
 }
 
 pub fn verify(data: &Data) -> u64 {
+    let err: f64 = 0.000001;
     if data.nsize == 2 {
         //TODO assert with assert_le to avoid error margin failures
-        assert_eq!(*data.b, [0.0, 0.5]);
-        assert_eq!(*data.c, [0.0, 0.5]);
+        assert!((data.b[0] - 0.0).abs() < err);
+        assert!((data.b[1] - 0.5).abs() < err);
+        //assert_eq!(*data.b, [0.0, 0.5]);
+
+        assert!((data.c[0] - 0.0).abs() < err);
+        assert!((data.c[1] - 0.5).abs() < err);
+    //assert_eq!(*data.c, [0.0, 0.5]);
     } else if data.nsize == 3 {
-        assert_eq!(*data.b, [0.0, 0.5, 0.5]);
-        assert_eq!(*data.c, [0.0, 0.0, 0.5]);
+        assert!((data.b[0] - 0.0).abs() < err);
+        assert!((data.b[1] - 0.5).abs() < err);
+        assert!((data.b[2] - 0.5).abs() < err);
+        //assert_eq!(*data.b, [0.0, 0.5, 0.5]);
+
+        assert!((data.c[0] - 0.0).abs() < err);
+        assert!((data.c[1] - 0.0).abs() < err);
+        assert!((data.c[2] - 0.5).abs() < err);
+    //assert_eq!(*data.c, [0.0, 0.0, 0.5]);
     } else {
         for i in 0..data.nsize {
             //println!("{:6.5} {:5.5}", data.b[i], data.c[i]);
             if i == 0 {
-                assert_eq!(data.b[i], 0.0);
-                assert_eq!(data.c[i], -0.5);
+                assert!((data.b[i] - 0.0).abs() < err);
+                assert!((data.c[i] - -0.5).abs() < err);
             } else if i == data.nsize - 3 || i == data.nsize - 1 {
-                assert_eq!(data.c[i], 0.5);
+                assert!((data.c[i] - 0.5).abs() < err);
             } else {
-                assert_eq!(data.b[i], 0.5);
-                assert_eq!(data.c[i], 0.0);
+                assert!((data.b[i] - 0.5).abs() < err);
+                assert!((data.c[i] - 0.0).abs() < err);
             }
         }
     }
