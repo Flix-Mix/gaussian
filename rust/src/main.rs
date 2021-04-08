@@ -67,10 +67,15 @@ fn main() {
     if verbose {
         lib::print(&data);
     }
-    lib::compute_gauss(&mut data);
+    // lib::compute_gauss(&mut data);
+    // if verbose {
+    //     lib::print(&data);
+    // }
+    // lib::solve_gauss(&mut data);
+    // lib::verify(&data);
+    lib::compute_gauss_p(&mut data);
     if verbose {
         lib::print(&data);
     }
-    lib::solve_gauss(&mut data);
     lib::verify(&data);
 }
