@@ -13,17 +13,9 @@ macro_rules! SWAP {
 // use core::num;
 use std::sync::{Arc, Mutex};
 use threadpool::ThreadPool;
+//use threadpool_crossbeam::ThreadPool;
 extern crate threadpool;
 
-// pub struct Data<'a> {
-//     pub nsize: usize,
-//     pub matrix: &'a mut Vec<Vec<f64>>,
-//     pub b: &'a mut Vec<f64>,
-//     pub c: &'a mut Vec<f64>,
-//     pub v: &'a mut Vec<f64>,
-//     pub swap: &'a mut Vec<u64>,
-//     pub num_threads: usize,
-// }
 #[derive(Debug)]
 pub struct Data {
     pub nsize: usize,

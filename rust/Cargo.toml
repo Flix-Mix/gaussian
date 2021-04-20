@@ -9,3 +9,5 @@ edition = "2018"
 [dependencies]
 clap = "2.33.3"
 threadpool = "1.8.1"
+threadpool-crossbeam = {path = "/home/aidan/Spring2021/CS258/Gaussian/rust/util/threadpool_crossbeam"}
+
