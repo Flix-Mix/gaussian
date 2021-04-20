@@ -10,22 +10,68 @@ macro_rules! SWAP {
     }};
 }
 
-use std::sync::{Arc, Mutex, MutexGuard};
-// use std::thread;
-// use std::sync::mpsc::{Sender, Receiver};
-// use std::sync::mpsc::channel;
-
+// use core::num;
+use std::sync::{Arc, Mutex};
 use threadpool::ThreadPool;
 extern crate threadpool;
 
-pub struct Data<'a> {
+// pub struct Data<'a> {
+//     pub nsize: usize,
+//     pub matrix: &'a mut Vec<Vec<f64>>,
+//     pub b: &'a mut Vec<f64>,
+//     pub c: &'a mut Vec<f64>,
+//     pub v: &'a mut Vec<f64>,
+//     pub swap: &'a mut Vec<u64>,
+//     pub num_threads: usize,
+// }
+#[derive(Debug)]
+pub struct Data {
     pub nsize: usize,
-    pub matrix: &'a mut Vec<Vec<f64>>,
-    pub b: &'a mut Vec<f64>,
-    pub c: &'a mut Vec<f64>,
-    pub v: &'a mut Vec<f64>,
-    pub swap: &'a mut Vec<u64>,
+    pub matrix: Vec<Vec<f64>>,
+    pub b: Vec<f64>,
+    pub c: Vec<f64>,
+    pub v: Vec<f64>,
+    pub swap: Vec<u64>,
     pub num_threads: usize,
+}
+
+
+pub fn initp(mut data: Data) -> Arc<Mutex<Data>>{
+    for i in 0..data.nsize {
+        data.matrix.push(Vec::with_capacity(data.nsize));
+        for _ in 0..data.nsize {
+            data.matrix[i].resize(data.nsize, 0.0);
+        }
+        data.b.push(i as f64);
+        data.swap.push(i as u64);
+        data.c.push(0.0);
+        data.v.push(0.0);
+    }
+
+    let num_threads = data.num_threads;
+    let pool = ThreadPool::new(num_threads);
+    let sdata = Arc::new(Mutex::new(data));
+
+    for i in 0..num_threads{
+        let sdata = Arc::clone(&sdata);
+        pool.execute(move ||{
+            //eprintln!("hello from thread {}", i);
+            let matrix = &mut sdata.lock().unwrap().matrix;
+            for i in (i..matrix.len()).step_by(num_threads) {
+                for j in 0..matrix.len() {
+                    let ii: f64 = i as f64;
+                    let jj: f64 = j as f64;
+                    matrix[i][j] = if jj < ii {
+                        2.0 * (jj + 1.0)
+                    } else {
+                        2.0 * (ii + 1.0)
+                    };
+                }
+            }
+        });
+    }
+    pool.join();
+    sdata
 }
 
 pub fn init(data: &mut Data) {
@@ -75,40 +121,38 @@ pub struct Message {
     pub index: usize,
 }
 
-pub fn compute_gauss_p(data: &mut Data) {
-    let pool = ThreadPool::new(data.num_threads);
-    let num_threads = data.num_threads;
-    let s_mat = Arc::new(Mutex::new(data.matrix.clone()));
-    let b_mat = Arc::new(Mutex::new(data.b.clone()));
-    for i in 0..data.nsize {
-        pivot(data, i);
-        let s_mat = Arc::clone(&s_mat);
-        let b_mat = Arc::clone(&b_mat);
-        pool.execute(move || {
-            let mut mat = s_mat.lock().unwrap();
-            let mut b = b_mat.lock().unwrap();
-            do_calc(&mut mat, &mut b, i, num_threads);
-        });
-    }
-    pool.join();
-}
+// pub fn compute_gauss_p(data: Data) -> Data {
+//     let num_threads = data.num_threads;
+//     let pool = ThreadPool::new(data.num_threads);
+//     let nsize = data.nsize;
+//     let sdata = Arc::new(data);
 
-fn do_calc(
-    mat: &mut MutexGuard<'_, Vec<Vec<f64>>>,
-    b: &mut MutexGuard<'_, Vec<f64>>,
-    i: usize,
-    num_threads: usize,
-) {
-    let mut pivot_val;
-    for j in (i + 1..mat.len()).step_by(num_threads) {
-        pivot_val = mat[j][i];
-        mat[j][i] = 0.0;
-        for k in i + 1..mat.len() {
-            mat[j][k] -= pivot_val * mat[i][k];
-        }
-        b[j] -= pivot_val * b[i];
-    }
-}
+//     for i in 0..nsize {
+//         pivot(&mut *sdata, i);
+//         for n in 0..num_threads {
+//             let sdatacpy = Arc::clone(&sdata);
+//             pool.execute(move || {
+//                 do_calc(sdatacpy, i + n);
+//             });
+//         }
+//         pool.join();
+//     }
+
+//     Arc::try_unwrap(sdata).unwrap()
+// }
+
+// fn do_calc(data: Arc<Data>, i: usize) {
+//     let mut pivot_val;
+//     let num_threads = data.num_threads; 
+//     for j in (i + 1..data.matrix.len()).step_by(num_threads) {
+//         pivot_val = data.matrix[j][i];
+//         data.matrix[j][i] = 0.0;
+//         for k in i + 1..data.matrix.len() {
+//             data.matrix[j][k] -= pivot_val * data.matrix[i][k];
+//         }
+//         data.b[j] -= pivot_val * data.b[i];
+//     }
+// }
 
 fn pivot(data: &mut Data, currow: usize) {
     let (mut irow, mut big, mut tmp);
@@ -173,16 +217,19 @@ pub fn print(data: &Data) {
     println!("\n}}");
 }
 
-pub fn print_mat(matrix: &[Vec<f64>]) {
-    println!("{{");
-    for row in matrix.iter().take(matrix.len() - 1) {
-        println!(" {:?}", row);
-    }
-    print!(" {:?}", matrix[matrix.len() - 1]);
-    println!("\n}}");
-}
+// pub fn print_mat(matrix: &[Vec<f64>]) {
+//     println!("{{");
+//     for row in matrix.iter().take(matrix.len() - 1) {
+//         println!(" {:?}", row);
+//     }
+//     print!(" {:?}", matrix[matrix.len() - 1]);
+//     println!("\n}}");
+// }
 
-pub fn verify(data: &Data) -> u64 {
+pub fn verify(data: &Data) {
+    // for i in 0..data.nsize{
+    //     println!("{:6.5} {:5.5}", data.b[i], data.c[i]);
+    // }
     let err: f64 = 0.000001;
     if data.nsize == 2 {
         //TODO assert with assert_le to avoid error margin failures
@@ -218,7 +265,6 @@ pub fn verify(data: &Data) -> u64 {
         }
     }
     println!("Verified");
-    1
 }
 
 #[cfg(test)]
@@ -228,111 +274,146 @@ mod tests {
     #[test]
     fn init_matrix_test() {
         let nsize = 3;
-        let mut matrix: Vec<Vec<f64>> = Vec::with_capacity(nsize);
-        let mut b: Vec<f64> = Vec::with_capacity(nsize);
-        let mut c: Vec<f64> = Vec::with_capacity(nsize);
-        let mut v: Vec<f64> = Vec::with_capacity(nsize);
-        let mut swap: Vec<u64> = Vec::with_capacity(nsize);
+        let matrix: Vec<Vec<f64>> = Vec::with_capacity(nsize);
+        let b: Vec<f64> = Vec::with_capacity(nsize);
+        let c: Vec<f64> = Vec::with_capacity(nsize);
+        let v: Vec<f64> = Vec::with_capacity(nsize);
+        let swap: Vec<u64> = Vec::with_capacity(nsize);
         let mut data = Data {
             nsize: nsize,
-            matrix: &mut matrix,
-            b: &mut b,
-            c: &mut c,
-            v: &mut v,
-            swap: &mut swap,
+            matrix: matrix,
+            b: b,
+            c: c,
+            v: v,
+            swap: swap,
             num_threads: 1,
         };
         init(&mut data);
-        assert_eq!(matrix, [[2.0, 2.0, 2.0], [2.0, 4.0, 4.0], [2.0, 4.0, 6.0]]);
+        assert_eq!(
+            data.matrix,
+            [[2.0, 2.0, 2.0], [2.0, 4.0, 4.0], [2.0, 4.0, 6.0]]
+        );
     }
 
     #[test]
     fn compute_gauss_test() {
         let nsize = 3;
-        let mut matrix: Vec<Vec<f64>> = Vec::with_capacity(nsize);
-        let mut b: Vec<f64> = Vec::with_capacity(nsize);
-        let mut c: Vec<f64> = Vec::with_capacity(nsize);
-        let mut v: Vec<f64> = Vec::with_capacity(nsize);
-        let mut swap: Vec<u64> = Vec::with_capacity(nsize);
+        let matrix: Vec<Vec<f64>> = Vec::with_capacity(nsize);
+        let b: Vec<f64> = Vec::with_capacity(nsize);
+        let c: Vec<f64> = Vec::with_capacity(nsize);
+        let v: Vec<f64> = Vec::with_capacity(nsize);
+        let swap: Vec<u64> = Vec::with_capacity(nsize);
         let mut data = Data {
             nsize: nsize,
-            matrix: &mut matrix,
-            b: &mut b,
-            c: &mut c,
-            v: &mut v,
-            swap: &mut swap,
+            matrix: matrix,
+            b: b,
+            c: c,
+            v: v,
+            swap: swap,
             num_threads: 1,
         };
         init(&mut data);
         compute_gauss(&mut data);
-        assert_eq!(matrix, [[1.0, 1.0, 1.0], [0.0, 1.0, 1.0], [0.0, 0.0, 1.0]]);
+        assert_eq!(
+            data.matrix,
+            [[1.0, 1.0, 1.0], [0.0, 1.0, 1.0], [0.0, 0.0, 1.0]]
+        );
     }
 
     #[test]
     fn solve_gauss_test() {
-        let nsize = 5;
-        let mut matrix: Vec<Vec<f64>> = Vec::with_capacity(nsize);
-        let mut b: Vec<f64> = Vec::with_capacity(nsize);
-        let mut c: Vec<f64> = Vec::with_capacity(nsize);
-        let mut v: Vec<f64> = Vec::with_capacity(nsize);
-        let mut swap: Vec<u64> = Vec::with_capacity(nsize);
+        let nsize = 3;
+        let matrix: Vec<Vec<f64>> = Vec::with_capacity(nsize);
+        let b: Vec<f64> = Vec::with_capacity(nsize);
+        let c: Vec<f64> = Vec::with_capacity(nsize);
+        let v: Vec<f64> = Vec::with_capacity(nsize);
+        let swap: Vec<u64> = Vec::with_capacity(nsize);
         let mut data = Data {
             nsize: nsize,
-            matrix: &mut matrix,
-            b: &mut b,
-            c: &mut c,
-            v: &mut v,
-            swap: &mut swap,
+            matrix: matrix,
+            b: b,
+            c: c,
+            v: v,
+            swap: swap,
             num_threads: 1,
         };
         init(&mut data);
         compute_gauss(&mut data);
         solve_gauss(&mut data);
-        assert_eq!(verify(&mut data), 1);
-    }
-
-    #[test]
-    fn parallel_smoke() {
-        let nsize = 5;
-        let mut matrix: Vec<Vec<f64>> = Vec::with_capacity(nsize);
-        let mut b: Vec<f64> = Vec::with_capacity(nsize);
-        let mut c: Vec<f64> = Vec::with_capacity(nsize);
-        let mut v: Vec<f64> = Vec::with_capacity(nsize);
-        let mut swap: Vec<u64> = Vec::with_capacity(nsize);
-        let mut data = Data {
-            nsize: nsize,
-            matrix: &mut matrix,
-            b: &mut b,
-            c: &mut c,
-            v: &mut v,
-            swap: &mut swap,
-            num_threads: 1,
-        };
-        init(&mut data);
-        compute_gauss_p(&mut data);
+        verify(&mut data);
         assert!(true);
     }
 
+
     #[test]
-    fn parallel_t1() {
-        let nsize = 5;
-        let mut matrix: Vec<Vec<f64>> = Vec::with_capacity(nsize);
-        let mut b: Vec<f64> = Vec::with_capacity(nsize);
-        let mut c: Vec<f64> = Vec::with_capacity(nsize);
-        let mut v: Vec<f64> = Vec::with_capacity(nsize);
-        let mut swap: Vec<u64> = Vec::with_capacity(nsize);
-        let mut data = Data {
+    fn initp_matrix_test() {
+        let nsize = 3;
+        let matrix: Vec<Vec<f64>> = Vec::with_capacity(nsize);
+        let b: Vec<f64> = Vec::with_capacity(nsize);
+        let c: Vec<f64> = Vec::with_capacity(nsize);
+        let v: Vec<f64> = Vec::with_capacity(nsize);
+        let swap: Vec<u64> = Vec::with_capacity(nsize);
+        let data = Data {
             nsize: nsize,
-            matrix: &mut matrix,
-            b: &mut b,
-            c: &mut c,
-            v: &mut v,
-            swap: &mut swap,
+            matrix: matrix,
+            b: b,
+            c: c,
+            v: v,
+            swap: swap,
             num_threads: 1,
         };
-        init(&mut data);
-        compute_gauss_p(&mut data);
-        solve_gauss(&mut data);
-        assert_eq!(verify(&data), 1);
+        let data = initp(data);
+        let guard = Arc::try_unwrap(data).unwrap();
+        let data = guard.lock().unwrap();
+        print(&*data);
+        // assert_eq!(
+        //     data.matrix,
+        //     [[2.0, 2.0, 2.0], [2.0, 4.0, 4.0], [2.0, 4.0, 6.0]]
+        // );
     }
+    // #[test]
+    // fn parallel_smoke() {
+    //     let nsize = 5;
+    //     let matrix: Vec<Vec<f64>> = Vec::with_capacity(nsize);
+    //     let b: Vec<f64> = Vec::with_capacity(nsize);
+    //     let c: Vec<f64> = Vec::with_capacity(nsize);
+    //     let v: Vec<f64> = Vec::with_capacity(nsize);
+    //     let swap: Vec<u64> = Vec::with_capacity(nsize);
+    //     let mut data = Data {
+    //         nsize: nsize,
+    //         matrix: matrix,
+    //         b: b,
+    //         c: c,
+    //         v: v,
+    //         swap: swap,
+    //         num_threads: 1,
+    //     };
+    //     init(&mut data);
+    //     compute_gauss_p(data);
+    //     assert!(true);
+    // }
+
+    // #[test]
+    // fn parallel_t1() {
+    //     let nsize = 5;
+    //     let matrix: Vec<Vec<f64>> = Vec::with_capacity(nsize);
+    //     let b: Vec<f64> = Vec::with_capacity(nsize);
+    //     let c: Vec<f64> = Vec::with_capacity(nsize);
+    //     let v: Vec<f64> = Vec::with_capacity(nsize);
+    //     let swap: Vec<u64> = Vec::with_capacity(nsize);
+    //     let mut data = Data {
+    //         nsize: nsize,
+    //         matrix: matrix,
+    //         b: b,
+    //         c: c,
+    //         v: v,
+    //         swap: swap,
+    //         num_threads: 1,
+    //     };
+    //     init(&mut data);
+    //     data = compute_gauss_p(data);
+    //     solve_gauss(&mut data);
+    //     verify(&mut data);
+    //     assert!(true);
+    // }
 }
