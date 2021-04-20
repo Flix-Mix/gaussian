@@ -6,7 +6,8 @@ import (
     "io"
     "os"
     "strconv"
-    // "math"
+    "sync"
+	// "math"
 )
 
 var matrix[][]float64
@@ -15,6 +16,16 @@ var V[]float64
 var C[]float64
 
 var swap_arr[]int
+var sendcounts[]int
+var bsendcounts[]int
+var num_procs int
+
+
+var wg sync.WaitGroup
+
+type row struct {
+    index   int
+}
 
 func swap(a float64, b float64) {
     tmp := a
@@ -99,21 +110,52 @@ func getPivot(nsize int, currow int) {
 	}
 }
 
+
+func doComputation(c chan row, i, nsize int) {
+	defer wg.Done()
+
+	pivotVal := matrix[i][i]
+	for {
+        row, ok := <-c
+        if !ok {
+            break
+        }
+		pivotVal = matrix[row.index][i]
+		matrix[row.index][i] = 0.0
+		for k := i + 1; k < nsize; k++ {
+			matrix[row.index][k] -= pivotVal * matrix[i][k]
+		}
+		B[row.index] -= pivotVal * B[i]
+    }
+
+	
+}
+
 func computeGauss(nsize int) {
 
 	for i := 0; i < nsize; i++ {
 		getPivot(nsize,i)
 
-		pivotVal := matrix[i][i]
+		// fillSendcounts(nsize, i)
+
+		// send an row indices to a channel of size nsize-i-1
+		rowsLeft := nsize-i-1
+
+		wg.Add(num_procs)
+
+		c := make(chan row, rowsLeft)  
+
+		for n := 0; n < num_procs; n++ {
+			go doComputation(c, i, nsize)
+		}
 
 		for j := i + 1; j < nsize; j++ {
-			pivotVal = matrix[j][i]
-			matrix[j][i] = 0.0
-			for k := i + 1; k < nsize; k++ {
-				matrix[j][k] -= pivotVal * matrix[i][k]
-			}
-			B[j] -= pivotVal * B[i]
+			c <- row{index: j}
 		}
+		close(c)
+	
+		wg.Wait()
+
 	}
 
 }
@@ -134,10 +176,39 @@ func solveGauss(nsize int) {
 
 }
 
+
+// func fillSendcounts(nsize, i int){
+// 	sendcounts = make([]int, nsize)
+// 	bsendcounts = make([]int, nsize)
+// 	rtd := nsize-i-1
+// 	rltd := rtd
+// 	nrpp := math.Ceil(float64(rtd/num_processors))
+// 	for n := 0; n < num_processors; n++ {
+// 		if rltd >= nrpp {
+// 			sendcounts[n] = nrpp*nsize
+// 			bsendcounts[n] = nrpp
+// 			rltd -= nrpp;
+// 		}
+// 		else if rltd == 0 {
+// 			sendcounts[n] = 0
+// 			bsendcounts[n] = 0
+// 		}
+// 		else {
+// 			sendcounts[n] = rltd*nsize
+// 			bsendcounts[n] = rltd
+// 			rltd -= rltd
+// 		}
+// 	}
+// }
+
 func main() {
     args := os.Args[1:]
+
+	// default
     nsize := 1024
     verify := false
+	num_procs = 1
+
 	for i, arg := range args {
         if arg == "-v" {
             verify = true
@@ -156,6 +227,20 @@ func main() {
             	fmt.Printf("Entered size is negative, hence using the default (%d)\n",nsize)
             }
         }
+        if arg == "-n" {
+            n, err := strconv.Atoi(args[i+1])
+            if err != nil {
+                // handle error
+                fmt.Println(err)
+                os.Exit(2)
+            }
+            if n > 0 {
+                fmt.Printf("n = %d\n", n)
+            	num_procs = n
+            } else {
+            	fmt.Printf("Entered size is negative, hence using the default (%d)\n",nsize)
+            }
+        }
 	}
 
     start := time.Now()
@@ -166,7 +251,8 @@ func main() {
     }
     duration := time.Since(start)
 
-    fmt.Println("Application time: %s\n", duration)
+    fmt.Print("Application time: ")
+    fmt.Println(duration)
 
 
     if verify {
