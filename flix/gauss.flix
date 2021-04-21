@@ -60,13 +60,13 @@ def buildContext(matrixSize: Int32): Context & Impure =
         swap = [0; matrixSize]
     }  
 
-def initMatrixhelper(context: Context, array: Array[Float64], i: Int32): () & Impure = 
-    Array.foreachWithIndex((element, j) -> ref element := Int32.toFloat64(if (j < i) 2 * (j + 1) else 2 * (i + 1)), array);
-    ref context.b := Array.put(context.b, i, Int32.toFloat64(i));
-    ref context.swap := Array.put(context.swap, i, i)
+def initMatrixhelper(context: Context, row: Array[Float64], i: Int32): () & Impure = 
+    Array.foreachWithIndex((_, j) -> (context.matrix)[i][j] = Int32.toFloat64(if (j < i) 2 * (j + 1) else 2 * (i + 1)), row);
+    (context.b)[i] = Int32.toFloat64(i);
+    (context.swap)[i] = i
 
 def initMatrix(context: Context): () & Impure = 
-    Array.foreachWithIndex((array, i) -> initMatrixhelper(context, array, i), context.matrix)        
+    Array.foreachWithIndex((row, i) -> initMatrixhelper(context, row, i), context.matrix)        
 
 def main(): String & Impure =
     // The following variables would be command line arguments, but Flix doesn't
