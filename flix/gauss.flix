@@ -86,9 +86,9 @@ def computeGaussJLoop(context: Context, i: Int32, j: Int32): () & Impure =
         computeGaussJLoop(context, i, j + 1)
     } else ()
 
-def computeGauss(context: Context): () & Impure =
+def computeGauss(context: Context, matrixSize: Int32): () & Impure =
     let computeGaussILoop = (row: Array[Float64], i: Int32) -> {
-        // getPivot
+        getPivot(context, i, matrixSize);
         Array.foreachWithIndex((_, _) -> computeGaussJLoop(context, i, i + 1), row)
     };
     Array.foreachWithIndex((row, i) -> computeGaussILoop(row, i), context.matrix)    
@@ -125,9 +125,6 @@ def swapRows(context: Context, i: Int32, matrixSize: Int32, currow: Int32, big: 
         swapRows(context, i+1, matrixSize, currow, big, irow)
     }
     
-	/// 		for(i = currow + 1; i < nsize; i++){
-	/// 			matrix[currow][i] /= pivotVal;
-	/// 		}
 def divideElementsByPivot(context: Context, i: Int32, matrixSize: Int32, currow: Int32, pivotVal: Float64): () & Impure =
     if (i == matrixSize) ()
     else {
@@ -166,6 +163,12 @@ def getPivot(context: Context, currow: Int32, matrixSize: Int32): () & Impure =
     } else ()
 
 
+/// def swapDoubles2(a: Ref[Float64], b: Ref[Float64]): () & Impure =
+///     let tmp = a;
+///     ref a := b;
+///     ref b := tmp;
+///     ()
+
 def main(): String & Impure =
     // The following variables would be command line arguments, but Flix doesn't
     // have the ability to recieve command line arguments
@@ -174,9 +177,16 @@ def main(): String & Impure =
     /// let numThreads = 4;
     
     let context = buildContext(matrixSize);
-    initMatrix(context);
-    getPivot(context, 1, matrixSize);
-    computeGauss(context);
+    Console.printLine(contextToString(context));
+    /// initMatrix(context);
+    computeGauss(context, matrixSize);
 
-    contextToString(context)
-    
+    /// let testArr = Array.init((i) -> Int32.toFloat64(i+1), 2);
+    /// let strArr1 = arrayToString(Float64.toString, testArr);
+    /// Console.printLine(strArr1);
+    /// swapDoubles(testArr[0], testArr[1]);
+    /// let strArr2 = arrayToString(Float64.toString, testArr);
+    /// Console.printLine(strArr2);
+
+    /// contextToString(context)
+    "end"
