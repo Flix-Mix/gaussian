@@ -31,7 +31,6 @@ def matrixToString(matrix: Array[Array[Float64]]): String & Impure =
     Array.foreach(
         (array) -> StringBuilder.appendLine!(stringBuilder, arrayToString(Float64.toString, array)),
         matrix);
-    StringBuilder.appendLine!(stringBuilder, "");
     StringBuilder.appendLine!(stringBuilder, "]");
     StringBuilder.toString(stringBuilder)
 
@@ -61,14 +60,38 @@ def buildContext(matrixSize: Int32): Context & Impure =
         swap = [0; matrixSize]
     };
 
-    let initMatrixHelper = (ctx: Context, row: Array[Float64], i: Int32) -> {
-        Array.foreachWithIndex((_, j) -> (ctx.matrix)[i][j] = Int32.toFloat64(if (j < i) 2 * (j + 1) else 2 * (i + 1)), row);
-        (ctx.b)[i] = Int32.toFloat64(i);
-        (ctx.swap)[i] = i
+    {
+        let initMatrixHelper = (ctx: Context, row: Array[Float64], i: Int32) -> {
+            Array.foreachWithIndex((_, j) -> (ctx.matrix)[i][j] = Int32.toFloat64(if (j < i) 2 * (j + 1) else 2 * (i + 1)), row);
+            (ctx.b)[i] = Int32.toFloat64(i);
+            (ctx.swap)[i] = i
+        };
+        Array.foreachWithIndex((row, i) -> initMatrixHelper(context, row, i), context.matrix)
     };
-    Array.foreachWithIndex((row, i) -> initMatrixHelper(context, row, i), context.matrix);
 
-    context         
+    context
+
+def computeGaussKLoop(context: Context, pivotValue: Float64, i: Int32, j: Int32, k: Int32): () & Impure =
+    if (k < Array.length((context.matrix)[i])) {
+        (context.matrix)[j][k] = (pivotValue * (context.matrix)[i][k]) - (context.matrix)[j][k];
+        computeGaussKLoop(context, pivotValue, i, j, k + 1)
+    } else ()
+
+def computeGaussJLoop(context: Context, i: Int32, j: Int32): () & Impure =
+    if (j < Array.length((context.matrix)[i])) {
+        let pivotValue = (context.matrix)[j][i];
+        (context.matrix)[j][i] = 0.0;
+        computeGaussKLoop(context, pivotValue, i, j, i + 1);
+        (context.b)[j] = (pivotValue * (context.b)[i]) - (context.b)[j];
+        computeGaussJLoop(context, i, j + 1)
+    } else ()
+
+def computeGauss(context: Context): () & Impure =
+    let computeGaussILoop = (row: Array[Float64], i: Int32) -> {
+        // getPivot
+        Array.foreachWithIndex((_, _) -> computeGaussJLoop(context, i, i + 1), row)
+    };
+    Array.foreachWithIndex((row, i) -> computeGaussILoop(row, i), context.matrix)    
 
 def main(): String & Impure =
     // The following variables would be command line arguments, but Flix doesn't
@@ -78,6 +101,8 @@ def main(): String & Impure =
     /// let numThreads = 4;
     
     let context = buildContext(matrixSize);
-    contextToString(context)
 
+    computeGauss(context);
+
+    contextToString(context)
     
