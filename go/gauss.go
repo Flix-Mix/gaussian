@@ -1,32 +1,19 @@
 package main
 
 import (
-    "fmt"
-    "time"
-    "io"
-    "os"
-    "strconv"
-    // "math"
+	"fmt"
+	"io"
+	"os"
+	"strconv"
+	"time"
 )
 
-var matrix[][]float64
-var B[]float64
-var V[]float64
-var C[]float64
+var matrix [][]float64
+var B []float64
+var V []float64
+var C []float64
 
-var swap_arr[]int
-
-func swap(a float64, b float64) {
-    tmp := a
-    a = b
-    b = tmp
-}
-
-func swapInt(a int, b int) {
-    tmp := a
-    a = b
-    b = tmp
-}
+var swap_arr []int
 
 // math.Abs
 
@@ -41,21 +28,20 @@ func initMatrix(nsize int) {
 	swap_arr = make([]int, nsize)
 
 	for i := 0; i < nsize; i++ {
-        for j := 0; j < nsize; j++ {
+		for j := 0; j < nsize; j++ {
 			// fmt.Println("%d \n", i)
 			// fmt.Println("%d \n", j)
-            if j < i {
-                matrix[i][j] = float64(2*(j+1))
-            } else {
-                matrix[i][j] = float64(2*(i+1))
-            }
+			if j < i {
+				matrix[i][j] = float64(2*(j+1)) + 1
+			} else {
+				matrix[i][j] = float64(2 * (i + 1))
+			}
 		}
 		B[i] = float64(i)
 		swap_arr[i] = i
 	}
 
 }
-
 
 func getPivot(nsize int, currow int) {
 	big := matrix[currow][currow]
@@ -79,15 +65,14 @@ func getPivot(nsize int, currow int) {
 
 	if irow != currow {
 		for i := currow; i < nsize; i++ {
-			swap(matrix[irow][i], matrix[currow][i])
+			matrix[irow][i], matrix[currow][i] = matrix[currow][i], matrix[irow][i]
 		}
-		swap(B[irow], B[currow])
-		swapInt(swap_arr[irow], swap_arr[currow])
+		B[irow], B[currow] = B[currow], B[irow]
+		swap_arr[irow], swap_arr[currow] = swap_arr[currow], swap_arr[irow]
 	}
 
-
 	{
-		pivotVal := matrix[currow][currow];
+		pivotVal := matrix[currow][currow]
 
 		if pivotVal != 1.0 {
 			matrix[currow][currow] = 1.0
@@ -102,7 +87,7 @@ func getPivot(nsize int, currow int) {
 func computeGauss(nsize int) {
 
 	for i := 0; i < nsize; i++ {
-		getPivot(nsize,i)
+		getPivot(nsize, i)
 
 		pivotVal := matrix[i][i]
 
@@ -121,7 +106,7 @@ func computeGauss(nsize int) {
 func solveGauss(nsize int) {
 
 	V[nsize-1] = B[nsize-1]
-	for i := nsize - 2; i >= 0;i-- {
+	for i := nsize - 2; i >= 0; i-- {
 		V[i] = B[i]
 		for j := nsize - 1; j > i; j-- {
 			V[i] -= matrix[i][j] * V[j]
@@ -135,44 +120,43 @@ func solveGauss(nsize int) {
 }
 
 func main() {
-    args := os.Args[1:]
-    nsize := 1024
-    verify := false
+	args := os.Args[1:]
+	nsize := 1024
+	verify := false
 	for i, arg := range args {
-        if arg == "-v" {
-            verify = true
-        }
-        if arg == "-s" {
-            s, err := strconv.Atoi(args[i+1])
-            if err != nil {
-                // handle error
-                fmt.Println(err)
-                os.Exit(2)
-            }
-            if s > 0 {
-                fmt.Printf("s = %d\n", s)
-            	nsize = s
-            } else {
-            	fmt.Printf("Entered size is negative, hence using the default (%d)\n",nsize)
-            }
-        }
+		if arg == "-v" {
+			verify = true
+		}
+		if arg == "-s" {
+			s, err := strconv.Atoi(args[i+1])
+			if err != nil {
+				// handle error
+				fmt.Println(err)
+				os.Exit(2)
+			}
+			if s > 0 {
+				fmt.Printf("s = %d\n", s)
+				nsize = s
+			} else {
+				fmt.Printf("Entered size is negative, hence using the default (%d)\n", nsize)
+			}
+		}
 	}
 
-    start := time.Now()
+	start := time.Now()
 	initMatrix(nsize)
 	computeGauss(nsize)
-    if verify {
-        solveGauss(nsize)
-    }
-    duration := time.Since(start)
+	if verify {
+		solveGauss(nsize)
+	}
+	duration := time.Since(start)
 
-    fmt.Println("Application time: %s\n", duration)
+	fmt.Println("Application time: %s\n", duration)
 
-
-    if verify {
-	    for i := 0; i < nsize; i++ {
+	if verify {
+		for i := 0; i < nsize; i++ {
 			s := fmt.Sprintf("%6.5f %5.5f\n", B[i], C[i])
 			io.WriteString(os.Stdout, s)
-        }
-    }
+		}
+	}
 }

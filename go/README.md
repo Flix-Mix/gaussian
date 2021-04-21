@@ -4,4 +4,4 @@ To compile and run from CL:
 
 
     $ go build gauss_channels.go
-    $ ./gauss_channels -s 1024 -n 1 -v
+    $ ./gauss_channels -s 1024 -n 8 -v
