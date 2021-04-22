@@ -92,8 +92,6 @@ def buildContext(matrixSize: Int32): Context & Impure =
         swap = [0; matrixSize]
     };
     ref (context.matrix) := buildMatrix(context.matrix, 0, matrixSize);
-    Console.printLine(contextToString(context));
-
     ref context := buildContextILoop(context, matrixSize, 0);
     context
 
@@ -136,17 +134,18 @@ def iterateRows(context: Context, i: Int32, matrixSize: Int32, currow: Int32, bi
 def swapRows(context: Context, i: Int32, matrixSize: Int32, currow: Int32, big: Float64, irow: Int32): () & Impure =
     if (i == matrixSize) ()
     else {
+        // Swap matrix[irow] and matrix[currow]
         let tmp = (context.matrix)[irow][i];
         (context.matrix)[irow][i] = (context.matrix)[currow][i];
         (context.matrix)[currow][i] = tmp;
-	    /// swapDoubles(ref (context.matrix)[irow][i], ref (context.matrix)[currow][i]);
+
         swapRows(context, i+1, matrixSize, currow, big, irow)
     }
     
 def divideElementsByPivot(context: Context, i: Int32, matrixSize: Int32, currow: Int32, pivotVal: Float64): () & Impure =
     if (i == matrixSize) ()
     else {
-        ref (context.matrix)[currow][i] := (context.matrix)[currow][i]/pivotVal;
+        (context.matrix)[currow][i] = (context.matrix)[currow][i]/pivotVal;
         divideElementsByPivot(context, i+1, matrixSize, currow, pivotVal)
     }
 
@@ -169,34 +168,86 @@ def getPivot(context: Context, currow: Int32, matrixSize: Int32): () & Impure =
 	if (irow != currow){
         swapRows(context, currow, matrixSize, currow, big, irow);
 
+        // Swap b[irow] and b[currow]
         let tmp = (context.b)[irow];
         (context.b)[irow] = (context.b)[currow];
         (context.b)[currow] = tmp;
-        /// swapDoubles(ref (context.b)[irow], ref (context.b)[currow]);
 
+        // Swap swap[irow] and swap[currow]
         let tmpInt = (context.swap)[irow];
         (context.swap)[irow] = (context.swap)[currow];
         (context.swap)[currow] = tmpInt
-        /// swapInts(ref (context.swap)[irow], ref (context.swap)[currow])
     }
     else ();
 
     let pivotVal = (context.matrix)[currow][currow];
     if (pivotVal != 1.0) {
-        ref (context.matrix)[currow][currow] := 1.0;
+        (context.matrix)[currow][currow] = 1.0;
         divideElementsByPivot(context, currow+1, matrixSize, currow, pivotVal);
-		ref (context.b)[currow] := (context.b)[currow]/pivotVal
+		(context.b)[currow] = (context.b)[currow]/pivotVal
     } else ()
 
+def solveGaussVJLoop(context: Context, i: Int32, j: Int32, matrixSize: Int32): Context & Impure =
+    if (j <= i) context
+    else {
+	    (context.v)[i] = (context.v)[i] - ((context.matrix)[i][j] * (context.v)[j]);
+        solveGaussVJLoop(context, i, j-1, matrixSize)
+    }
+
+def solveGaussVILoop(context: Context, i: Int32, matrixSize: Int32): Context & Impure =
+    if (i < 0) context
+    else {
+        (context.v)[i] = (context.b)[i];
+        solveGaussVJLoop(context, i, matrixSize-1, matrixSize);
+        solveGaussVILoop(context, i-1, matrixSize)
+    }
+    
+def solveGaussCILoop(context: Context, i: Int32, matrixSize: Int32): Context & Impure =
+    if (i >= matrixSize) context
+    else {
+        (context.c)[i] = (context.v)[i];
+        solveGaussCILoop(context, i+1, matrixSize)
+    }
+
+def solveGauss(context: Context, matrixSize: Int32): Context & Impure =
+	(context.v)[matrixSize-1] = (context.b)[matrixSize-1];
+    ref context := solveGaussVILoop(context, matrixSize-2, matrixSize);
+    solveGaussCILoop(context, 0, matrixSize)
+
+
+def verifyLoop(context: Context, i: Int32, matrixSize: Int32): Unit & Impure =
+    if (i == matrixSize) ()
+    else {
+        let stringBuilder = StringBuilder.new();
+        let bVal = Float64.toString((context.b)[i]);
+        let cVal = Float64.toString((context.c)[i]);
+        StringBuilder.appendString!(stringBuilder, bVal);
+        StringBuilder.appendString!(stringBuilder, " ");
+        StringBuilder.appendString!(stringBuilder, cVal);
+        let row = StringBuilder.toString(stringBuilder);
+        Console.printLine(row);
+        verifyLoop(context, i+1, matrixSize)
+    }
 
 def main(): String & Impure =
     // The following variables would be command line arguments, but Flix doesn't
     // have the ability to recieve command line arguments
-    let matrixSize = 4;
-    /// let verify = true;
+    let matrixSize = 128;
+    let verify = true;
+    let printContext = false;
     /// let numThreads = 4;
-    
     let context = buildContext(matrixSize);
-    Console.printLine(contextToString(context));
+
     computeGauss(context, matrixSize);
+
+	if (verify) ref context := solveGauss(context, matrixSize)
+	else ();
+
+    if (printContext) Console.printLine(contextToString(context))
+	else ();
+
+	if (verify) {
+		verifyLoop(context, 0, matrixSize)
+	} else ();
+    
     "end"
