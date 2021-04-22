@@ -6,6 +6,7 @@ type alias Context = {
     swap: Array[Int32]
 }
 
+
 def formatWith[a, e](f: a -> String & e, sep: String, a: Array[a]): String & Impure =
     let sb = StringBuilder.new();
     let step = (x,i) ->
@@ -29,7 +30,7 @@ def matrixToString(matrix: Array[Array[Float64]]): String & Impure =
     let stringBuilder = StringBuilder.new();
     StringBuilder.appendLine!(stringBuilder, "matrix: [");
     Array.foreach(
-        (array) -> StringBuilder.appendLine!(stringBuilder, arrayToString(Float64.toString, array)),
+        (row) -> StringBuilder.appendLine!(stringBuilder, arrayToString(Float64.toString, row)),
         matrix);
     StringBuilder.appendLine!(stringBuilder, "]");
     StringBuilder.toString(stringBuilder)
@@ -51,6 +52,37 @@ def contextToString(context: Context): String & Impure =
     StringBuilder.appendLine!(stringBuilder, arrayToString(Int32.toString, context.swap));
     StringBuilder.toString(stringBuilder)
 
+def buildContextJLoop(context: Context, matrixSize: Int32, i: Int32, j: Int32): Context & Impure = 
+    if (j == matrixSize) context
+    else {
+        if (j < i) {
+            (context.matrix)[i][j] = Int32.toFloat64(2 * (j + 1));
+            ()
+        } else {
+            ((context.matrix)[i])[j] = Int32.toFloat64(2 * (i + 1));
+            ()
+        };
+        buildContextJLoop(context, matrixSize, i, j+1)
+    }
+
+
+def buildContextILoop(context: Context, matrixSize: Int32, i: Int32): Context & Impure = 
+    if (i == matrixSize) context
+    else {
+        buildContextJLoop(context, matrixSize, i, 0);
+        (context.b)[i] = Int32.toFloat64(i);
+        (context.swap)[i] = i;
+        buildContextILoop(context, matrixSize, i+1)
+    }
+
+
+def buildMatrix(matrix: Array[Array[Float64]], i: Int32, matrixSize: Int32): Array[Array[Float64]] & Impure = 
+    if (i == matrixSize) matrix
+    else {
+        matrix[i] = [0.0; matrixSize];
+        buildMatrix(matrix, i+1, matrixSize)
+    } 
+
 def buildContext(matrixSize: Int32): Context & Impure = 
     let context = {
         matrix = [[0.0; matrixSize]; matrixSize],
@@ -59,17 +91,12 @@ def buildContext(matrixSize: Int32): Context & Impure =
         c = [0.0; matrixSize],
         swap = [0; matrixSize]
     };
+    ref (context.matrix) := buildMatrix(context.matrix, 0, matrixSize);
+    Console.printLine(contextToString(context));
 
-    {
-        let initMatrixHelper = (ctx: Context, row: Array[Float64], i: Int32) -> {
-            Array.foreachWithIndex((_, j) -> (ctx.matrix)[i][j] = Int32.toFloat64(if (j < i) 2 * (j + 1) else 2 * (i + 1)), row);
-            (ctx.b)[i] = Int32.toFloat64(i);
-            (ctx.swap)[i] = i
-        };
-        Array.foreachWithIndex((row, i) -> initMatrixHelper(context, row, i), context.matrix)
-    };
-
+    ref context := buildContextILoop(context, matrixSize, 0);
     context
+
 
 def computeGaussKLoop(context: Context, pivotValue: Float64, i: Int32, j: Int32, k: Int32): () & Impure =
     if (k < Array.length((context.matrix)[i])) {
@@ -88,23 +115,11 @@ def computeGaussJLoop(context: Context, i: Int32, j: Int32): () & Impure =
 
 def computeGauss(context: Context, matrixSize: Int32): () & Impure =
     let computeGaussILoop = (row: Array[Float64], i: Int32) -> {
-        getPivot(context, i, matrixSize);
+        getPivot(context, i, matrixSize);    
         Array.foreachWithIndex((_, _) -> computeGaussJLoop(context, i, i + 1), row)
     };
     Array.foreachWithIndex((row, i) -> computeGaussILoop(row, i), context.matrix)    
 
-
-def swapDoubles(a: Ref[Float64], b: Ref[Float64]): () & Impure =
-    let tmp = a;
-    ref a := b;
-    ref b := tmp;
-    ()
-
-def swapInts(a: Ref[Int32], b: Ref[Int32]): () & Impure =
-    let tmp = a;
-    ref a := b;
-    ref b := tmp;
-    ()
 
 def iterateRows(context: Context, i: Int32, matrixSize: Int32, currow: Int32, big: Float64, irow: Int32): () & Impure =
     if (i == matrixSize) () 
@@ -121,14 +136,17 @@ def iterateRows(context: Context, i: Int32, matrixSize: Int32, currow: Int32, bi
 def swapRows(context: Context, i: Int32, matrixSize: Int32, currow: Int32, big: Float64, irow: Int32): () & Impure =
     if (i == matrixSize) ()
     else {
-	    swapDoubles(ref (context.matrix)[irow][i], ref (context.matrix)[currow][i]);
+        let tmp = (context.matrix)[irow][i];
+        (context.matrix)[irow][i] = (context.matrix)[currow][i];
+        (context.matrix)[currow][i] = tmp;
+	    /// swapDoubles(ref (context.matrix)[irow][i], ref (context.matrix)[currow][i]);
         swapRows(context, i+1, matrixSize, currow, big, irow)
     }
     
 def divideElementsByPivot(context: Context, i: Int32, matrixSize: Int32, currow: Int32, pivotVal: Float64): () & Impure =
     if (i == matrixSize) ()
     else {
-        ref (context.matrix)[currow][i] := pivotVal;
+        ref (context.matrix)[currow][i] := (context.matrix)[currow][i]/pivotVal;
         divideElementsByPivot(context, i+1, matrixSize, currow, pivotVal)
     }
 
@@ -150,8 +168,16 @@ def getPivot(context: Context, currow: Int32, matrixSize: Int32): () & Impure =
 
 	if (irow != currow){
         swapRows(context, currow, matrixSize, currow, big, irow);
-        swapDoubles(ref (context.b)[irow], ref (context.b)[currow]);
-        swapInts(ref (context.swap)[irow], ref (context.swap)[currow])
+
+        let tmp = (context.b)[irow];
+        (context.b)[irow] = (context.b)[currow];
+        (context.b)[currow] = tmp;
+        /// swapDoubles(ref (context.b)[irow], ref (context.b)[currow]);
+
+        let tmpInt = (context.swap)[irow];
+        (context.swap)[irow] = (context.swap)[currow];
+        (context.swap)[currow] = tmpInt
+        /// swapInts(ref (context.swap)[irow], ref (context.swap)[currow])
     }
     else ();
 
@@ -163,30 +189,14 @@ def getPivot(context: Context, currow: Int32, matrixSize: Int32): () & Impure =
     } else ()
 
 
-/// def swapDoubles2(a: Ref[Float64], b: Ref[Float64]): () & Impure =
-///     let tmp = a;
-///     ref a := b;
-///     ref b := tmp;
-///     ()
-
 def main(): String & Impure =
     // The following variables would be command line arguments, but Flix doesn't
     // have the ability to recieve command line arguments
-    let matrixSize = 16;
+    let matrixSize = 4;
     /// let verify = true;
     /// let numThreads = 4;
     
     let context = buildContext(matrixSize);
     Console.printLine(contextToString(context));
-    /// initMatrix(context);
     computeGauss(context, matrixSize);
-
-    /// let testArr = Array.init((i) -> Int32.toFloat64(i+1), 2);
-    /// let strArr1 = arrayToString(Float64.toString, testArr);
-    /// Console.printLine(strArr1);
-    /// swapDoubles(testArr[0], testArr[1]);
-    /// let strArr2 = arrayToString(Float64.toString, testArr);
-    /// Console.printLine(strArr2);
-
-    /// contextToString(context)
     "end"
