@@ -25,6 +25,26 @@ type row struct {
 	index int
 }
 
+func printArray(array []float64, nsize int) {
+	fmt.Println("\nPrinting array:")
+	for i := 0; i < nsize; i++ {
+		s := fmt.Sprintf("%6.5f ", array[i])
+		io.WriteString(os.Stdout, s)
+	}
+	fmt.Println()
+}
+
+func printMatrix(nsize int) {
+	fmt.Println("\nPrinting matrix:")
+	for i := 0; i < nsize; i++ {
+		for j := 0; j < nsize; j++ {
+			s := fmt.Sprintf("%6.5f ", matrix[i][j])
+			io.WriteString(os.Stdout, s)
+		}
+		fmt.Println()
+	}
+}
+
 func initMatrix(nsize int) {
 	matrix = make([][]float64, nsize)
 	for i := 0; i < nsize; i++ {
@@ -156,29 +176,6 @@ func solveGauss(nsize int) {
 
 }
 
-// func fillSendcounts(nsize, i int){
-// 	sendcounts = make([]int, nsize)
-// 	bsendcounts = make([]int, nsize)
-// 	rtd := nsize-i-1
-// 	rltd := rtd
-// 	nrpp := math.Ceil(float64(rtd/num_processors))
-// 	for n := 0; n < num_processors; n++ {
-// 		if rltd >= nrpp {
-// 			sendcounts[n] = nrpp*nsize
-// 			bsendcounts[n] = nrpp
-// 			rltd -= nrpp;
-// 		}
-// 		else if rltd == 0 {
-// 			sendcounts[n] = 0
-// 			bsendcounts[n] = 0
-// 		}
-// 		else {
-// 			sendcounts[n] = rltd*nsize
-// 			bsendcounts[n] = rltd
-// 			rltd -= rltd
-// 		}
-// 	}
-// }
 
 func main() {
 	args := os.Args[1:]
@@ -186,11 +183,15 @@ func main() {
 	// default
 	nsize := 1024
 	verify := false
+	print_matrix := false
 	num_procs = 1
 
 	for i, arg := range args {
 		if arg == "-v" {
 			verify = true
+		}
+		if arg == "-p" {
+			print_matrix = true
 		}
 		if arg == "-s" {
 			s, err := strconv.Atoi(args[i+1])
@@ -232,6 +233,13 @@ func main() {
 
 	fmt.Print("Application time: ")
 	fmt.Println(duration)
+
+	if print_matrix {
+		printMatrix(nsize)
+		printArray(B, nsize) 
+		printArray(V, nsize) 
+		printArray(C, nsize) 
+	}
 
 	if verify {
 		for i := 0; i < nsize; i++ {

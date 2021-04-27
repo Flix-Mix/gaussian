@@ -15,7 +15,25 @@ var C []float64
 
 var swap_arr []int
 
-// math.Abs
+func printArray(array []float64, nsize int) {
+	fmt.Println("\nPrinting array:")
+	for i := 0; i < nsize; i++ {
+		s := fmt.Sprintf("%6.5f ", array[i])
+		io.WriteString(os.Stdout, s)
+	}
+	fmt.Println()
+}
+
+func printMatrix(nsize int) {
+	fmt.Println("\nPrinting matrix:")
+	for i := 0; i < nsize; i++ {
+		for j := 0; j < nsize; j++ {
+			s := fmt.Sprintf("%6.5f ", matrix[i][j])
+			io.WriteString(os.Stdout, s)
+		}
+		fmt.Println()
+	}
+}
 
 func initMatrix(nsize int) {
 	matrix = make([][]float64, nsize)
@@ -32,7 +50,7 @@ func initMatrix(nsize int) {
 			// fmt.Println("%d \n", i)
 			// fmt.Println("%d \n", j)
 			if j < i {
-				matrix[i][j] = float64(2*(j+1)) + 1
+				matrix[i][j] = float64(2 * (j + 1))
 			} else {
 				matrix[i][j] = float64(2 * (i + 1))
 			}
@@ -123,9 +141,14 @@ func main() {
 	args := os.Args[1:]
 	nsize := 1024
 	verify := false
+	print_matrix := false
+
 	for i, arg := range args {
 		if arg == "-v" {
 			verify = true
+		}
+		if arg == "-p" {
+			print_matrix = true
 		}
 		if arg == "-s" {
 			s, err := strconv.Atoi(args[i+1])
@@ -149,10 +172,18 @@ func main() {
 	if verify {
 		solveGauss(nsize)
 	}
+	
 	duration := time.Since(start)
 
 	fmt.Println("Application time: %s\n", duration)
 
+	if print_matrix {
+		printMatrix(nsize)
+		printArray(B, nsize) 
+		printArray(V, nsize) 
+		printArray(C, nsize) 
+	}
+	
 	if verify {
 		for i := 0; i < nsize; i++ {
 			s := fmt.Sprintf("%6.5f %5.5f\n", B[i], C[i])
