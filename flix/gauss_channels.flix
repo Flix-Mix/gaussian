@@ -284,14 +284,21 @@ def verifyLoop(context: Context, i: Int32, matrixSize: Int32): Unit & Impure =
 def main(): String & Impure =
     // The following variables would be command line arguments, but Flix doesn't
     // have the ability to recieve command line arguments
-    let matrixSize = 1024;
-    let verify = true;
+    import java.lang.System:currentTimeMillis();
+    let matrixSize = 2048;
+    let verify = false;
     let printContext = false;
-    let numThreads = 1;
+    let numThreads = 8;
     let context = buildContext(matrixSize);
-    printf(Int32.toString, "", 0);
+    let start = currentTimeMillis();
 
     computeGauss(context, matrixSize, numThreads);
+
+    let finish = currentTimeMillis();
+    let timeElapsed = Int64.toFloat64((finish - start))/1000.0;
+    printf(Int32.toString, "Matrix size: ", matrixSize);
+    printf(Int32.toString, "Number of threads: ", numThreads);
+    printf(Float64.toString, "Time elapsed: ", timeElapsed);
 
 	if (verify) ref context := solveGauss(context, matrixSize)
 	else ();
