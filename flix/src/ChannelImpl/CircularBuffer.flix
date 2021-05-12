@@ -1,11 +1,6 @@
-def printf[a, e](toString: a -> String & e, str: String, val: a): Unit & Impure =
-    let stringBuilder = StringBuilder.new();
-    let convertedStr = toString(val);
-    StringBuilder.appendString!(stringBuilder, str);
-    StringBuilder.appendString!(stringBuilder, convertedStr);
-    let fullStr = StringBuilder.toString(stringBuilder);
-    Console.printLine(fullStr)
-
+/* -------------------------------------------------------------------------- */
+/*                       Circular Buffer implementation                       */
+/* -------------------------------------------------------------------------- */
 
 pub enum CircularBuffer[a] {
     case CircularBuffer(
@@ -15,7 +10,6 @@ pub enum CircularBuffer[a] {
         Ref[Int] //count: current number of elements
     )
 }
-
 
 namespace CircularBuffer {
     ///
@@ -105,46 +99,3 @@ namespace CircularBuffer {
             Some(Array.get(deref a, startInd))
         }
 }
-
-def main(): String & Impure =
-
-    let elementQueue = CircularBuffer.new(3);
-    Console.printLine("Creating buffer of size 3");
-
-    if (CircularBuffer.isEmpty(elementQueue)) Console.printLine("Buffer is empty") else Console.printLine("Buffer is not empty");
-
-    let result = CircularBuffer.put(1, elementQueue);
-    Console.printLine("");
-    Console.printLine("Adding 1");
-    if (result) Console.printLine("Put was a success") else Console.printLine("Put failed");
-
-    let result2 = CircularBuffer.put(2, elementQueue);
-    Console.printLine("");
-    Console.printLine("Adding 2");
-    if (result2) Console.printLine("Put was a success") else Console.printLine("Put failed");
-
-    let result3 = CircularBuffer.put(3, elementQueue);
-    Console.printLine("");
-    Console.printLine("Adding 3");
-    if (result3) Console.printLine("Put was a success") else Console.printLine("Put failed");
-    if (CircularBuffer.isFull(elementQueue)) Console.printLine("Buffer is full") else Console.printLine("Buffer is not full");
-
-    let element1 = CircularBuffer.get(elementQueue);
-    printf(Int32.toString, "Getting element ", element1);
-
-    let result4 = CircularBuffer.put(4, elementQueue);
-    Console.printLine("");
-    Console.printLine("Adding 4");
-    if (result4) Console.printLine("Put was a success") else Console.printLine("Put failed");
-
-    let element2 = CircularBuffer.get(elementQueue);
-    Console.printLine("");
-    printf(Int32.toString, "Getting element ", element2);
-    let element3 = CircularBuffer.get(elementQueue);
-    Console.printLine("");
-    printf(Int32.toString, "Getting element ", element3);
-    if (CircularBuffer.isEmpty(elementQueue)) Console.printLine("Buffer is empty") else Console.printLine("Buffer is not empty");
-    let element4 = CircularBuffer.get(elementQueue);
-    Console.printLine("");
-    printf(Int32.toString, "Getting element ", element4);
-    ""
