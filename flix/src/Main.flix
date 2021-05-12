@@ -1,3 +1,4 @@
+
 def printf[a, e](toString: a -> String & e, str: String, val: a): Unit & Impure =
     let stringBuilder = StringBuilder.new();
     let convertedStr = toString(val);
@@ -6,40 +7,59 @@ def printf[a, e](toString: a -> String & e, str: String, val: a): Unit & Impure 
     let fullStr = StringBuilder.toString(stringBuilder);
     Console.printLine(fullStr)
 
+
+  enum Implementation {
+      case Seq,
+      case ParallelJava,
+      case ParallelFlix
+  }
+
+
 // The main entry point.
-def main(_args: Array[String]): Int32 & Impure =
+def main(): Int32 & Impure =
   // The following variables would be command line arguments, but Flix doesn't
   // have the ability to recieve command line arguments
   import java.lang.System:currentTimeMillis();
-  //let matrixSize = 128;
+  let matrixSize = 128;
   let verify = false;
   let printContext = false;
-  //let numThreads = 1;
-  let matrixSizes = [128, 256, 512, 1024, 2048];
-  let threadCounts = [1, 2, 4, 8, 16, 32, 64, 72];
-  // let context = buildContext(128);
-  Array.foreach((n) -> {
-      Array.foreach((t) -> {
-      let context = buildContext(n);
-      let start = currentTimeMillis();
-      //printf(Int32.toString, "Matrix size: ", n);
-      //printf(Int32.toString, "Number of threads: ", t);
-      computeGauss(context, n, t);
-      let finish = currentTimeMillis();
-      let timeElapsed = Int64.toFloat64(finish - start);
-      printf(Float64.toString, "", timeElapsed);
+  let numThreads = 4;
+  let context = buildContext(matrixSize);
+  let start = currentTimeMillis();
 
-    if (verify) ref context := solveGauss(context, 128)
-    else ();
+  let impl = Implementation.ParallelFlix;
 
-      if (printContext) Console.printLine(contextToString(context))
-    else ();
+  match impl {
+    case Seq => GaussSequential.computeGauss(context, matrixSize)
+    case ParallelJava => GaussParallelJava.computeGauss(context, matrixSize, numThreads)
+    case ParallelFlix => GaussParallelFlix.computeGauss(context, matrixSize, numThreads)
+  };
 
-      if (verify) {
-        verifyLoop(context, 0, 128)
-    } else ()
-  }, threadCounts)}, matrixSizes);
+  let finish = currentTimeMillis();
+  let timeElapsed = Int64.toFloat64(finish - start);
+  printf(Int32.toString, "Matrix size: ", matrixSize);
+  printf(Int32.toString, "Number of threads: ", numThreads);
+  printf(Float64.toString, "Time elapsed [ms]: ", timeElapsed);
 
-  /// let timeElapsed_sec = Int64.toFloat64((finish - start))/1000.0;
+	if (verify) {
+    ref context := match impl {
+      case Seq => GaussSequential.solveGauss(context, matrixSize)
+      case ParallelJava => GaussParallelJava.solveGauss(context, matrixSize)
+      case ParallelFlix => GaussParallelFlix.solveGauss(context, matrixSize)
+    }
+  }
+	else ();
 
-  0 // exit code
+    if (printContext) Console.printLine(contextToString(context))
+	else ();
+
+	if (verify) {
+    match impl {
+      case Seq => GaussSequential.verifyLoop(context, 0, matrixSize)
+      case ParallelJava => GaussParallelJava.verifyLoop(context, 0, matrixSize)
+      case ParallelFlix => GaussParallelFlix.verifyLoop(context, 0, matrixSize)
+    }
+	} else ();
+
+  // Exit code
+  0

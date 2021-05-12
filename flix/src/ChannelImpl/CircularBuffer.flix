@@ -2,20 +2,24 @@
 /*                       Circular Buffer implementation                       */
 /* -------------------------------------------------------------------------- */
 
-pub enum CircularBuffer[a] {
-    case CircularBuffer(
-        Ref[Array[a]], //buf: array storing elements of the circular buffer 
-        Ref[Int], //startInd: ptr to the start of stored data
-        Ref[Int], //endInd: ptr to the end of stored data
-        Ref[Int] //count: current number of elements
-    )
-}
 
 namespace CircularBuffer {
+
+    pub enum CircularBuffer[a] {
+        case CircularBuffer(
+            Ref[Array[a]], //buf: array storing elements of the circular buffer 
+            Ref[Int], //startInd: ptr to the start of stored data
+            Ref[Int], //endInd: ptr to the end of stored data
+            Ref[Int] //count: current number of elements
+        )
+    }
+
+
     ///
     /// Returns a new empty mutable list with a default capacity.
     ///
     pub def new(capacity: Int): CircularBuffer[a] & Impure = CircularBuffer(ref [default; capacity], ref 0, ref 0, ref 0)
+
 
     ///
     /// Returns the capacity of `cb`.
@@ -39,8 +43,8 @@ namespace CircularBuffer {
         else {
             l := len - 1;
             // Move the start index to start if at the end
-            if (startInd == capacity(cb)-1) si := 0
-            else si := startInd + 1;
+            if (startInd < capacity(cb)) si := startInd + 1
+            else si := 0;
             Array.get(deref a, startInd)
         }
 
@@ -78,10 +82,11 @@ namespace CircularBuffer {
             (deref a)[endInd] = x;
             l := len + 1;
             // Move the end index to start if at the end
-            if (endInd == capacity(cb)-1) ei := 0
-            else ei := endInd + 1;
+            if (endInd < capacity(cb)) ei := endInd + 1
+            else ei := 0;
             true
         }
+
 
     ///
     /// Returns the first-in element in the circular buffer `cb` as an Optional type.
@@ -95,7 +100,9 @@ namespace CircularBuffer {
         }
         else {
             l := len - 1;
-            si := startInd + 1;
+            // Move the start index to start if at the end
+            if (startInd < capacity(cb)) si := startInd + 1
+            else si := 0;
             Some(Array.get(deref a, startInd))
         }
 }

@@ -2,8 +2,7 @@
 /*                           Channel implementation                           */
 /* -------------------------------------------------------------------------- */
 
-
-/* ---------------------------- Type declarations --------------------------- */
+use CircularBuffer.{CircularBuffer};
 
 /**
 * The tuple corresponds to (id, channelLock, bufferSize, unbuffered, elementQueue, waitingGetters, waitingSetters)
@@ -15,25 +14,26 @@
 *   - waitingGetters is a set of conditions that is waiting for get. This set is cleared after each new element.
 *   - waitingSetters is a condition that can notify threads of available space in the elementQueue.
 */
-pub enum ChannelImpl[a] {
-    case Mpmc(
-            Int64,
-            ReentrantLock,
-            Int,
-            Bool,
-            CircularBuffer[a],
-            MutList[(ReentrantLock, Condition)],
-            Condition
-        )
-}
-
-type alias Condition = ##java.util.concurrent.locks.Condition
-
-type alias ReentrantLock = ##java.util.concurrent.locks.ReentrantLock
-
-/* ----------------------------- Implementation ----------------------------- */
-
 namespace ChannelImpl {
+
+/* ---------------------------- Type declarations --------------------------- */
+
+    pub enum ChannelImpl[a] {
+        case Mpmc(
+                Int64,
+                ReentrantLock,
+                Int,
+                Bool,
+                CircularBuffer[a],
+                MutList[(ReentrantLock, Condition)],
+                Condition
+            )
+    }
+
+    type alias Condition = ##java.util.concurrent.locks.Condition
+
+    type alias ReentrantLock = ##java.util.concurrent.locks.ReentrantLock
+
 
 /* ------------------------------ Java wrappers ----------------------------- */
 
@@ -95,6 +95,8 @@ namespace ChannelImpl {
     ///         channelId(x) == channelId(y)
     /// }
 
+
+/* ----------------------------- Implementation ----------------------------- */
 
     // TODO implement global counter for id
     def newId(): Int64 =
