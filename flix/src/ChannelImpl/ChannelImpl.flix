@@ -124,12 +124,13 @@ namespace ChannelImpl {
 
         let reentrantLock = newReentrantLock();
 
+
         Mpmc(
             newId(),
             reentrantLock,
             bufSize,
             unbuffered,
-            CircularBuffer.new(bufferSize),
+            CircularBuffer.new(bufSize),
             MutList.new(), 
             newCondition(reentrantLock)
         )
